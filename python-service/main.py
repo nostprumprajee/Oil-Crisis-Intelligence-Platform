@@ -1,16 +1,22 @@
 from fastapi import FastAPI
 import requests
 import xml.etree.ElementTree as ET
-from datetime import datetime
 import html
+from datetime import datetime, timedelta
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-@app.get("/thai-oil")
-def get_thai_oil():
-    url = "https://orapiweb.pttor.com/oilservice/OilPrice.asmx"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # dev mode
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    today = datetime.now()
+def fetch_oil(day: datetime):
+    url = "https://orapiweb.pttor.com/oilservice/OilPrice.asmx"
 
     headers = {
         "Content-Type": "application/soap+xml; charset=utf-8"
@@ -23,27 +29,26 @@ def get_thai_oil():
       <soap12:Body>
         <GetOilPrice xmlns="http://www.pttor.com">
           <Language>TH</Language>
-          <DD>{today.day}</DD>
-          <MM>{today.month}</MM>
-          <YYYY>{today.year}</YYYY>
+          <DD>{day.day}</DD>
+          <MM>{day.month}</MM>
+          <YYYY>{day.year}</YYYY>
         </GetOilPrice>
       </soap12:Body>
     </soap12:Envelope>"""
 
     try:
         res = requests.post(url, data=body, headers=headers, timeout=10)
-    except Exception as e:
-        return {"error": f"Request failed: {str(e)}"}
+    except Exception:
+        return []
 
     if res.status_code != 200:
-        return {"error": res.text}
+        return []
 
     try:
         root = ET.fromstring(res.content)
-    except Exception as e:
-        return {"error": "SOAP parse failed", "raw": res.text[:500]}
+    except:
+        return []
 
-    # หา result
     result = None
     for elem in root.iter():
         if "GetOilPriceResult" in elem.tag:
@@ -51,11 +56,10 @@ def get_thai_oil():
             break
 
     if not result:
-        return {"error": "No result"}
+        return []
 
     inner_xml = html.unescape(result)
 
-    # 🔥 FIX encoding (safe)
     try:
         inner_xml = inner_xml.encode("latin1").decode("utf-8")
     except:
@@ -63,8 +67,8 @@ def get_thai_oil():
 
     try:
         inner_root = ET.fromstring(inner_xml)
-    except Exception as e:
-        return {"error": "Inner XML parse failed", "raw": inner_xml[:500]}
+    except:
+        return []
 
     prices = []
 
@@ -79,3 +83,23 @@ def get_thai_oil():
             })
 
     return prices
+
+@app.get("/thai-oil")
+def get_thai_oil():
+    return fetch_oil(datetime.now())
+
+@app.get("/thai-oil/history")
+def get_history():
+    results = []
+
+    for i in range(7):
+        day = datetime.now() - timedelta(days=i)
+
+        data = fetch_oil(day)
+
+        results.append({
+            "date": day.strftime("%Y-%m-%d"),
+            "prices": data
+        })
+
+    return results
