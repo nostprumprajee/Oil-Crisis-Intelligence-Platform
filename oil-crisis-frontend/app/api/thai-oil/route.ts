@@ -1,0 +1,6 @@
+export async function GET() {
+//   const res = await fetch("http://go-service:8080/thai-oil");
+    const res = await fetch("http://localhost:8080/thai-oil");
+  const data = await res.json();
+  return Response.json(data);
+}

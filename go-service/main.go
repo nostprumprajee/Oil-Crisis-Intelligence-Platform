@@ -26,18 +26,19 @@ func main() {
 	})
 
 	// call python service
-	r.GET("/simulate", func(c *gin.Context) {
-		resp, err := http.Get("http://localhost:8000/simulate?disruption=15")
+	r.GET("/thai-oil", func(c *gin.Context) {
+		resp, err := http.Get("http://localhost:8000/thai-oil")
+		// resp, err := http.Get("http://localhost:8000/simulate")
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}
 		defer resp.Body.Close()
 
-		var result SimulationResponse
-		json.NewDecoder(resp.Body).Decode(&result)
+		var data interface{}
+		json.NewDecoder(resp.Body).Decode(&data)
 
-		c.JSON(200, result)
+		c.JSON(200, data)
 	})
 
 	r.Run(":8080")
