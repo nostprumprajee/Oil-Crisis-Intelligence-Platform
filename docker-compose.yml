@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  python-service:
+    build: ./python-service
+    ports:
+      - "8000:8000"
+
+  go-service:
+    build: ./go-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - python-service
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - go-service
