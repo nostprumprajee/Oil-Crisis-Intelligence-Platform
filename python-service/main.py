@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 import html
 from datetime import datetime, timedelta
 from fastapi.middleware.cors import CORSMiddleware
+from sklearn.linear_model import LinearRegression
+import numpy as np
 
 app = FastAPI()
 
@@ -103,3 +105,38 @@ def get_history():
         })
 
     return results
+
+@app.get("/thai-oil/predict")
+def predict_oil():
+    history = []
+
+    # ดึงย้อนหลัง 7 วัน
+    for i in range(7):
+        day = datetime.now() - timedelta(days=i)
+        data = fetch_oil(day)
+
+        for item in data:
+            if "ดีเซล" in item["fuel"]:
+                history.append(item["price"])
+
+    if len(history) < 2:
+        return {"error": "Not enough data"}
+
+    # reverse ให้เรียงเวลา
+    history = history[::-1]
+
+    # 🔥 สร้าง X,Y
+    X = np.array(range(len(history))).reshape(-1, 1)
+    y = np.array(history)
+
+    model = LinearRegression()
+    model.fit(X, y)
+
+    # 🔮 predict 3 วันข้างหน้า
+    future_x = np.array(range(len(history), len(history) + 3)).reshape(-1, 1)
+    predictions = model.predict(future_x)
+
+    return {
+        "history": history,
+        "prediction": predictions.tolist()
+    }
