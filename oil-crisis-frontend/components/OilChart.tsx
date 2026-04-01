@@ -114,6 +114,7 @@ export default function OilChart({ data }: { data: any[] }) {
             strokeDasharray="5 5"
             dot={false}
             name="Diesel (Forecast)"
+            connectNulls
           />
 
           <Line
@@ -123,6 +124,7 @@ export default function OilChart({ data }: { data: any[] }) {
             strokeDasharray="5 5"
             dot={false}
             name="Gasohol 95 (Forecast)"
+            connectNulls
           />
         </LineChart>
       </ResponsiveContainer>

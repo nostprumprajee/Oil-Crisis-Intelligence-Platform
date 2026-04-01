@@ -160,3 +160,4 @@ def predict_oil():
             "high": g_high
         }
     }
+    
