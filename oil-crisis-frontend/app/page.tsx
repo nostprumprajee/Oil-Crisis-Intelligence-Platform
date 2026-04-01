@@ -11,10 +11,12 @@ import ExportPanel from "@/components/ExportPanel";
 import FuelFilter from "@/components/FuelFilter";
 import AccuracyPanel from "@/components/AccuracyPanel";
 import DateRangeSelector from "@/components/DateRangeSelector";
+import TrendsContainer from "@/components/TrendsContainer";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { exportHistoricalData, exportLatestPrices } from "@/utils/export";
 import { calculateAccuracy, extractHistoricalPredictions, AccuracyMetrics } from "@/utils/accuracy";
+import { calculateTrend, calculatePriceStats, getWeeklyTrend } from "@/utils/trends";
 
 export default function Home() {
   const { theme, toggleTheme, colors } = useTheme();
@@ -157,6 +159,28 @@ export default function Home() {
     historicalData.gasohol95.actual,
     historicalData.gasohol95.predicted
   );
+
+  // Calculate trend indicators
+  const dieselPrices = mergedData
+    .filter(item => item.Diesel !== undefined)
+    .map(item => item.Diesel);
+  const gasohol95Prices = mergedData
+    .filter(item => item.Gasohol95 !== undefined)
+    .map(item => item.Gasohol95);
+
+  const dieselDaily = dieselPrices.length >= 2
+    ? calculateTrend(dieselPrices[dieselPrices.length - 1], dieselPrices[dieselPrices.length - 2])
+    : { direction: "stable" as const, changePercent: 0, changeAmount: 0, arrow: "→", color: "#9ca3af", label: "Stable" };
+
+  const gasohol95Daily = gasohol95Prices.length >= 2
+    ? calculateTrend(gasohol95Prices[gasohol95Prices.length - 1], gasohol95Prices[gasohol95Prices.length - 2])
+    : { direction: "stable" as const, changePercent: 0, changeAmount: 0, arrow: "→", color: "#9ca3af", label: "Stable" };
+
+  const dieselWeekly = getWeeklyTrend(mergedData, "Diesel");
+  const gasohol95Weekly = getWeeklyTrend(mergedData, "Gasohol95");
+
+  const dieselStats = calculatePriceStats(mergedData, "Diesel");
+  const gasohol95Stats = calculatePriceStats(mergedData, "Gasohol95");
   
   // Get available fuel types from latest data
   const availableFuels = Array.from(new Set(latest.map(item => item.fuel)));
@@ -332,7 +356,7 @@ export default function Home() {
         style={{
           display: "grid",
           gridTemplateColumns: "2fr 1fr",
-          gridTemplateRows: "500px auto auto",
+          gridTemplateRows: "500px auto auto auto",
           gap: 14
         }}
       >
@@ -346,7 +370,19 @@ export default function Home() {
           <LatestPanel latest={filteredLatest} getPriceChange={getPriceChange} />
         </div>
 
-        {/* � ALCCURACY METRICS */}
+        {/* 📈 TREND ANALYSIS */}
+        <div style={{ ...panelStyle, gridColumn: "1 / -1" }}>
+          <TrendsContainer
+            dieselDaily={dieselDaily}
+            dieselWeekly={dieselWeekly}
+            dieselStats={dieselStats}
+            gasohol95Daily={gasohol95Daily}
+            gasohol95Weekly={gasohol95Weekly}
+            gasohol95Stats={gasohol95Stats}
+          />
+        </div>
+
+        {/* 🎯 ACCURACY METRICS */}
         <div style={panelStyle}>
           <AccuracyPanel 
             dieselMetrics={dieselMetrics}
@@ -354,7 +390,7 @@ export default function Home() {
           />
         </div>
 
-        {/* 🌍 GLOBAL + � ALERT */}
+        {/* 🌍 GLOBAL + 🚨 ALERT */}
         <div style={{ display: "flex", gap: 14 }}>
           <div style={{ ...panelStyle, flex: 1 }}>
             <GlobalPanel />
