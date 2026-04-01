@@ -30,7 +30,8 @@ export default function DateRangeSelector({ selectedDays, onDaysChange }: DateRa
       <span style={{ 
         fontSize: 13, 
         color: colors.textSecondary,
-        fontWeight: 500
+        fontWeight: 500,
+        whiteSpace: "nowrap"
       }}>
         {language === "en" ? "📅 Date Range:" : "📅 ช่วงเวลา:"}
       </span>
@@ -53,7 +54,9 @@ export default function DateRangeSelector({ selectedDays, onDaysChange }: DateRa
               cursor: "pointer",
               fontSize: 12,
               fontWeight: isSelected ? 600 : 400,
-              transition: "all 0.2s"
+              transition: "all 0.2s",
+              whiteSpace: "nowrap",
+              minWidth: 60
             }}
             onMouseEnter={(e) => {
               if (!isSelected) {
@@ -97,7 +100,7 @@ export default function DateRangeSelector({ selectedDays, onDaysChange }: DateRa
             textAlign: "center"
           }}
         />
-        <span style={{ fontSize: 11, color: colors.textSecondary }}>
+        <span style={{ fontSize: 11, color: colors.textSecondary, whiteSpace: "nowrap" }}>
           {language === "en" ? "days" : "วัน"}
         </span>
       </div>

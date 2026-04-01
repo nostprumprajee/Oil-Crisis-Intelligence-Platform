@@ -40,7 +40,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const colors = theme === "dark" 
     ? {
         bg: "#05070b",
-        panelBg: "linear-gradient(145deg, #0a0f1a, #05070b)",
+        panelBg: "#0a0f1a",
         border: "#1f2937",
         text: "#e5e7eb",
         textSecondary: "#9ca3af",
@@ -52,7 +52,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
     : {
         bg: "#f9fafb",
-        panelBg: "linear-gradient(145deg, #ffffff, #f3f4f6)",
+        panelBg: "#ffffff",
         border: "#e5e7eb",
         text: "#111827",
         textSecondary: "#6b7280",

@@ -43,7 +43,8 @@ export default function AutoRefreshControl({
       display: "flex",
       alignItems: "center",
       gap: 12,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      minWidth: 300
     }}>
       {/* Toggle Button */}
       <button
@@ -60,7 +61,8 @@ export default function AutoRefreshControl({
           cursor: "pointer",
           fontSize: 12,
           fontWeight: isEnabled ? 600 : 400,
-          transition: "all 0.2s"
+          transition: "all 0.2s",
+          whiteSpace: "nowrap"
         }}
         title={language === "en" ? "Toggle auto-refresh" : "เปิด/ปิดการรีเฟรชอัตโนมัติ"}
       >

@@ -14,11 +14,14 @@ import DateRangeSelector from "@/components/DateRangeSelector";
 import TrendsContainer from "@/components/TrendsContainer";
 import AlertsPanel from "@/components/AlertsPanel";
 import AutoRefreshControl from "@/components/AutoRefreshControl";
+import VolatilityContainer from "@/components/VolatilityContainer";
+import TabNavigation from "@/components/TabNavigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { exportHistoricalData, exportLatestPrices } from "@/utils/export";
 import { calculateAccuracy, extractHistoricalPredictions, AccuracyMetrics } from "@/utils/accuracy";
 import { calculateTrend, calculatePriceStats, getWeeklyTrend } from "@/utils/trends";
+import { calculateVolatility } from "@/utils/volatility";
 import { 
   PriceAlert, 
   loadAlerts, 
@@ -51,12 +54,18 @@ export default function Home() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 🎨 Theme-aware panel style
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"overview" | "analysis" | "alerts" | "settings">("overview");
+
+  // 🎨 Theme-aware panel style with shadow
   const panelStyle = {
     background: colors.panelBg,
     border: `1px solid ${colors.border}`,
     borderRadius: 12,
-    padding: 14
+    padding: 16,
+    boxShadow: theme === "dark" 
+      ? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)"
+      : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
   };
 
   // 🔥 FIX: fetch + set prediction ถูกต้อง
@@ -200,6 +209,10 @@ export default function Home() {
 
   const dieselStats = calculatePriceStats(mergedData, "Diesel");
   const gasohol95Stats = calculatePriceStats(mergedData, "Gasohol95");
+
+  // Calculate volatility
+  const dieselVolatility = calculateVolatility(dieselPrices);
+  const gasohol95Volatility = calculateVolatility(gasohol95Prices);
   
   // Get available fuel types from latest data
   const availableFuels = Array.from(new Set(latest.map(item => item.fuel)));
@@ -264,7 +277,7 @@ export default function Home() {
 
     // Initial fetch
     fetchData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-refresh effect
   useEffect(() => {
@@ -295,13 +308,13 @@ export default function Home() {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
-  }, [autoRefreshEnabled, refreshInterval]);
+  }, [autoRefreshEnabled, refreshInterval, dateRange]); // เพิ่ม dateRange เข้าไป
 
   // Re-fetch when date range changes
   useEffect(() => {
     fetchData();
     setCountdown(refreshInterval); // Reset countdown
-  }, [dateRange]);
+  }, [dateRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check alerts when latest prices update
   useEffect(() => {
@@ -331,8 +344,10 @@ export default function Home() {
         background: colors.bg,
         minHeight: "100vh",
         color: colors.text,
-        padding: 16,
-        fontFamily: "Inter, system-ui"
+        padding: "20px 24px",
+        fontFamily: "Inter, system-ui",
+        maxWidth: 1600,
+        margin: "0 auto"
       }}
     >
       {/* 🔥 HEADER */}
@@ -341,14 +356,28 @@ export default function Home() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          borderBottom: `1px solid ${colors.border}`,
-          paddingBottom: 12,
-          marginBottom: 16
+          paddingBottom: 16,
+          marginBottom: 20
         }}
       >
-        <h1 style={{ color: colors.accent, fontSize: 20 }}>
-          {t.header.title}
-        </h1>
+        <div>
+          <h1 style={{ 
+            color: colors.accent, 
+            fontSize: 28,
+            fontWeight: 700,
+            margin: 0,
+            marginBottom: 4
+          }}>
+            {t.header.title}
+          </h1>
+          <p style={{ 
+            fontSize: 13, 
+            color: colors.textSecondary,
+            margin: 0
+          }}>
+            {t.header.subtitle}
+          </p>
+        </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
@@ -357,36 +386,20 @@ export default function Home() {
               background: colors.panelBg,
               border: `1px solid ${colors.border}`,
               borderRadius: 8,
-              padding: "6px 12px",
+              padding: "8px 14px",
               color: colors.text,
               cursor: "pointer",
-              fontSize: 14,
+              fontSize: 13,
               display: "flex",
               alignItems: "center",
-              gap: 6
+              gap: 6,
+              boxShadow: theme === "dark" 
+                ? "0 2px 4px rgba(0,0,0,0.2)" 
+                : "0 2px 4px rgba(0,0,0,0.05)"
             }}
             title={t.buttons.exportCSV}
           >
             {t.buttons.exportCSV}
-          </button>
-
-          <button
-            onClick={() => exportLatestPrices(filteredLatest)}
-            style={{
-              background: colors.panelBg,
-              border: `1px solid ${colors.border}`,
-              borderRadius: 8,
-              padding: "6px 12px",
-              color: colors.text,
-              cursor: "pointer",
-              fontSize: 14,
-              display: "flex",
-              alignItems: "center",
-              gap: 6
-            }}
-            title={t.buttons.latest}
-          >
-            {t.buttons.latest}
           </button>
 
           <button
@@ -395,14 +408,17 @@ export default function Home() {
               background: colors.panelBg,
               border: `1px solid ${colors.border}`,
               borderRadius: 8,
-              padding: "6px 12px",
+              padding: "8px 14px",
               color: colors.text,
               cursor: "pointer",
-              fontSize: 14,
+              fontSize: 13,
               display: "flex",
               alignItems: "center",
               gap: 6,
-              fontWeight: 600
+              fontWeight: 600,
+              boxShadow: theme === "dark" 
+                ? "0 2px 4px rgba(0,0,0,0.2)" 
+                : "0 2px 4px rgba(0,0,0,0.05)"
             }}
             title="Switch Language"
           >
@@ -415,23 +431,25 @@ export default function Home() {
               background: colors.panelBg,
               border: `1px solid ${colors.border}`,
               borderRadius: 8,
-              padding: "6px 12px",
+              padding: "8px 14px",
               color: colors.text,
               cursor: "pointer",
-              fontSize: 14,
+              fontSize: 13,
               display: "flex",
               alignItems: "center",
-              gap: 6
+              gap: 6,
+              boxShadow: theme === "dark" 
+                ? "0 2px 4px rgba(0,0,0,0.2)" 
+                : "0 2px 4px rgba(0,0,0,0.05)"
             }}
           >
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
-
-          <div style={{ fontSize: 12, color: colors.textSecondary }}>
-            {t.header.subtitle}
-          </div>
         </div>
       </div>
+
+      {/* Tab Navigation */}
+      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* 🔥 TICKER (เหลืออันเดียวพอ) */}
       <Ticker data={filteredLatest} />
@@ -447,14 +465,17 @@ export default function Home() {
         justifyContent: "space-between",
         alignItems: "center",
         flexWrap: "wrap",
-        gap: 12
+        gap: 12,
+        minHeight: 60
       }}>
-        <DateRangeSelector 
-          selectedDays={dateRange}
-          onDaysChange={setDateRange}
-        />
+        <div style={{ flex: "1 1 auto", minWidth: 400 }}>
+          <DateRangeSelector 
+            selectedDays={dateRange}
+            onDaysChange={setDateRange}
+          />
+        </div>
         
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: "0 0 auto" }}>
           <AutoRefreshControl
             isEnabled={autoRefreshEnabled}
             interval={refreshInterval}
@@ -469,7 +490,8 @@ export default function Home() {
               color: colors.accent,
               display: "flex",
               alignItems: "center",
-              gap: 6
+              gap: 6,
+              whiteSpace: "nowrap"
             }}>
               <span className="spinner">⏳</span>
               {language === "en" ? "Loading..." : "กำลังโหลด..."}
@@ -506,6 +528,18 @@ export default function Home() {
             gasohol95Daily={gasohol95Daily}
             gasohol95Weekly={gasohol95Weekly}
             gasohol95Stats={gasohol95Stats}
+          />
+        </div>
+
+        {/* 📊 VOLATILITY & RISK */}
+        <div style={{ ...panelStyle, gridColumn: "1 / -1" }}>
+          <VolatilityContainer
+            dieselVolatility={dieselVolatility}
+            dieselCurrent={dieselStats.current}
+            dieselAverage={dieselStats.average}
+            gasohol95Volatility={gasohol95Volatility}
+            gasohol95Current={gasohol95Stats.current}
+            gasohol95Average={gasohol95Stats.average}
           />
         </div>
 
