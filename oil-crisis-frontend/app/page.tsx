@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import OilChart from "@/components/OilChart";
 import { transformData } from "@/utils/transform";
 import Ticker from "@/components/Ticker";
@@ -13,6 +13,7 @@ import AccuracyPanel from "@/components/AccuracyPanel";
 import DateRangeSelector from "@/components/DateRangeSelector";
 import TrendsContainer from "@/components/TrendsContainer";
 import AlertsPanel from "@/components/AlertsPanel";
+import AutoRefreshControl from "@/components/AutoRefreshControl";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { exportHistoricalData, exportLatestPrices } from "@/utils/export";
@@ -42,6 +43,13 @@ export default function Home() {
   const [dateRange, setDateRange] = useState<number>(7);
   const [loading, setLoading] = useState<boolean>(false);
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
+  
+  // Auto-refresh state
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState<boolean>(true);
+  const [refreshInterval, setRefreshInterval] = useState<number>(15); // seconds
+  const [countdown, setCountdown] = useState<number>(15);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   // 🎨 Theme-aware panel style
   const panelStyle = {
@@ -230,6 +238,16 @@ export default function Home() {
     saveAlerts(updatedAlerts);
   };
 
+  // Auto-refresh handlers
+  const handleToggleAutoRefresh = () => {
+    setAutoRefreshEnabled(prev => !prev);
+  };
+
+  const handleIntervalChange = (newInterval: number) => {
+    setRefreshInterval(newInterval);
+    setCountdown(newInterval);
+  };
+
   // Filter data based on selected fuels
   const filteredLatest = latest.filter(item => 
     selectedFuels.some(fuel => item.fuel.includes(fuel))
@@ -243,13 +261,47 @@ export default function Home() {
     
     // Request notification permission
     requestNotificationPermission();
+
+    // Initial fetch
+    fetchData();
   }, []);
 
+  // Auto-refresh effect
+  useEffect(() => {
+    // Clear existing intervals
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+
+    if (autoRefreshEnabled) {
+      // Reset countdown
+      setCountdown(refreshInterval);
+
+      // Set up refresh interval
+      intervalRef.current = setInterval(() => {
+        fetchData();
+        setCountdown(refreshInterval);
+      }, refreshInterval * 1000);
+
+      // Set up countdown timer
+      countdownRef.current = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) return refreshInterval;
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [autoRefreshEnabled, refreshInterval]);
+
+  // Re-fetch when date range changes
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 15000); // 🔥 ลด load
-    return () => clearInterval(interval);
-  }, [dateRange]); // Re-fetch when date range changes
+    setCountdown(refreshInterval); // Reset countdown
+  }, [dateRange]);
 
   // Check alerts when latest prices update
   useEffect(() => {
@@ -393,25 +445,37 @@ export default function Home() {
         borderRadius: 10,
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center"
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 12
       }}>
         <DateRangeSelector 
           selectedDays={dateRange}
           onDaysChange={setDateRange}
         />
         
-        {loading && (
-          <div style={{ 
-            fontSize: 12, 
-            color: colors.accent,
-            display: "flex",
-            alignItems: "center",
-            gap: 6
-          }}>
-            <span className="spinner">⏳</span>
-            {language === "en" ? "Loading..." : "กำลังโหลด..."}
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <AutoRefreshControl
+            isEnabled={autoRefreshEnabled}
+            interval={refreshInterval}
+            countdown={countdown}
+            onToggle={handleToggleAutoRefresh}
+            onIntervalChange={handleIntervalChange}
+          />
+
+          {loading && (
+            <div style={{ 
+              fontSize: 12, 
+              color: colors.accent,
+              display: "flex",
+              alignItems: "center",
+              gap: 6
+            }}>
+              <span className="spinner">⏳</span>
+              {language === "en" ? "Loading..." : "กำลังโหลด..."}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 🔥 GRID */}
