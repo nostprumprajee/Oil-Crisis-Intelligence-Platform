@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import OilChart from "@/components/OilChart";
 import { transformData } from "@/utils/transform";
 import Ticker from "@/components/Ticker";
+import LatestPanel from "@/components/LatestPanel";
+import GlobalPanel from "@/components/GlobalPanel";
+import AlertPanel from "@/components/AlertPanel";
 
 export default function Home() {
   const [data, setData] = useState<any[]>([]);
@@ -15,32 +18,25 @@ export default function Home() {
   gasohol95: []
 });
 
-  // const fetchData = () => {
-  //   fetch("http://localhost:8000/thai-oil/history")
-  //     .then(res => res.json())
-  //     .then(raw => {
-  //       setData(transformData(raw));
-  //       setLatest(raw[0]?.prices || []);
-  //     });
-  // };
+  const panelStyle = {
+  background: "#0a0a0a",
+  border: "1px solid #222",
+  borderRadius: 10,
+  padding: 12,
+  overflow: "hidden"
+};
   const fetchData = async () => {
-  // 🔹 ดึง history
   const res1 = await fetch("http://localhost:8000/thai-oil/history");
   const raw = await res1.json();
 
-  setData(transformData(raw));
-  setPrevLatest([...latest]);
-  setLatest(raw[0]?.prices || []);
-
-  // 🔮 ดึง prediction
   const res2 = await fetch("http://localhost:8000/thai-oil/predict");
   const pred = await res2.json();
 
-  setPrediction({
-    diesel: pred.diesel || [],
-    gasohol95: pred.gasohol95 || []
-  });
-  };
+  setPrevLatest([...latest]);
+  setLatest(raw[0]?.prices || []);
+
+  setData(transformData(raw, pred)); // 🔥 ส่ง pred เข้าไป
+};
   const getPriceChange = (fuel: string, price: number) => {
     const prev = prevLatest.find(p => p.fuel === fuel);
     if (!prev) return "neutral";
@@ -105,39 +101,36 @@ export default function Home() {
       <Ticker data={latest} />
 
       {/* 🔥 GRID LAYOUT */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "2fr 1fr",
-        gap: 16
-      }}>
+      <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "2fr 1fr",
+    gridTemplateRows: "400px 250px",
+    gap: 12,
+    height: "calc(100vh - 100px)"
+  }}
+>
+  {/* 📊 MAIN CHART */}
+  <div style={panelStyle}>
+    <OilChart data={mergedData} />
+  </div>
 
-        {/* 📊 CHART */}
-        <OilChart data={mergedData} />
+  {/* 💹 RIGHT TOP */}
+  <div style={panelStyle}>
+    <Ticker data={latest} />
+    <LatestPanel latest={latest} getPriceChange={getPriceChange} />
+  </div>
 
-        {/* 💹 LATEST */}
-        <div style={{
-          background: "#0a0a0a",
-          padding: 16,
-          borderRadius: 10,
-          border: "1px solid #222"
-        }}>
-          <h3 style={{ color: "#facc15" }}>Latest Prices</h3>
+  {/* 🌍 BOTTOM LEFT */}
+  <div style={panelStyle}>
+    <GlobalPanel />
+  </div>
 
-          {latest.map((item, i) => (
-            <div key={i} style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "6px 0",
-              borderBottom: "1px solid #111"
-            }}>
-              <span>{item.fuel}</span>
-              <span style={{ color: "#22c55e" }}>
-                {item.price}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+  {/* 🚨 BOTTOM RIGHT */}
+  <div style={panelStyle}>
+    <AlertPanel latest={latest} />
+  </div>
+</div>
 
       {/* 🔥 TABLE */}
       <div style={{

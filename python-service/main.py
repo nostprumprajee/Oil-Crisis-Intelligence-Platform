@@ -99,7 +99,6 @@ def predict_with_band(series):
     future_x = np.array(range(len(series), len(series)+3)).reshape(-1, 1)
     pred = model.predict(future_x)
 
-    # 🔥 confidence band (ง่าย ๆ)
     std = np.std(y)
 
     low = pred - std
@@ -143,24 +142,21 @@ def predict_oil():
             if "เบนซินแก๊สโซฮอล์ 95" in item["fuel"]:
                 g95_hist.append(item["price"])
 
-    # reverse ให้ถูกเวลา
     diesel_hist = diesel_hist[::-1]
     g95_hist = g95_hist[::-1]
 
-    def predict(series):
-        if len(series) < 2:
-            return []
-
-        X = np.array(range(len(series))).reshape(-1, 1)
-        y = np.array(series)
-
-        model = LinearRegression()
-        model.fit(X, y)
-
-        future_x = np.array(range(len(series), len(series)+3)).reshape(-1, 1)
-        return model.predict(future_x).tolist()
+    d_pred, d_low, d_high = predict_with_band(diesel_hist)
+    g_pred, g_low, g_high = predict_with_band(g95_hist)
 
     return {
-        "diesel": predict(diesel_hist),
-        "gasohol95": predict(g95_hist)
+        "diesel": {
+            "pred": d_pred,
+            "low": d_low,
+            "high": d_high
+        },
+        "gasohol95": {
+            "pred": g_pred,
+            "low": g_low,
+            "high": g_high
+        }
     }
