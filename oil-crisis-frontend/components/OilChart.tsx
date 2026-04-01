@@ -48,9 +48,14 @@ export default function OilChart({ data }: { data: any[] }) {
         border: `1px solid ${colors.border}`
       }}
     >
-      <h3 style={{ color: colors.accent, marginBottom: 10 }}>
-        Oil Price Trend + Forecast
-      </h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <h3 style={{ color: colors.accent, margin: 0 }}>
+          Oil Price Trend + Forecast
+        </h3>
+        <div style={{ fontSize: 12, color: colors.textSecondary }}>
+          {data.length} data points
+        </div>
+      </div>
 
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={data}>

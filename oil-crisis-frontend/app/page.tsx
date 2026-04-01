@@ -7,7 +7,9 @@ import Ticker from "@/components/Ticker";
 import LatestPanel from "@/components/LatestPanel";
 import GlobalPanel from "@/components/GlobalPanel";
 import AlertPanel from "@/components/AlertPanel";
+import ExportPanel from "@/components/ExportPanel";
 import { useTheme } from "@/contexts/ThemeContext";
+import { exportHistoricalData, exportLatestPrices } from "@/utils/export";
 
 export default function Home() {
   const { theme, toggleTheme, colors } = useTheme();
@@ -166,7 +168,45 @@ export default function Home() {
           🛢️ Oil Crisis Intelligence Terminal
         </h1>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            onClick={() => exportHistoricalData(mergedData)}
+            style={{
+              background: colors.panelBg,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 8,
+              padding: "6px 12px",
+              color: colors.text,
+              cursor: "pointer",
+              fontSize: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 6
+            }}
+            title="Export historical data to CSV"
+          >
+            📊 Export CSV
+          </button>
+
+          <button
+            onClick={() => exportLatestPrices(latest)}
+            style={{
+              background: colors.panelBg,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 8,
+              padding: "6px 12px",
+              color: colors.text,
+              cursor: "pointer",
+              fontSize: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 6
+            }}
+            title="Export latest prices to CSV"
+          >
+            💾 Latest
+          </button>
+
           <button
             onClick={toggleTheme}
             style={{
@@ -182,7 +222,7 @@ export default function Home() {
               gap: 6
             }}
           >
-            {theme === "dark" ? "☀️" : "🌙"} {theme === "dark" ? "Light" : "Dark"}
+            {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
           <div style={{ fontSize: 12, color: colors.textSecondary }}>
@@ -199,7 +239,7 @@ export default function Home() {
         style={{
           display: "grid",
           gridTemplateColumns: "2fr 1fr",
-          gridTemplateRows: "500px 280px",
+          gridTemplateRows: "500px 280px 200px",
           gap: 14
         }}
       >
@@ -221,6 +261,11 @@ export default function Home() {
         {/* 🚨 ALERT */}
         <div style={panelStyle}>
           <AlertPanel latest={latest} />
+        </div>
+
+        {/* 📥 EXPORT */}
+        <div style={{ ...panelStyle, gridColumn: "1 / -1" }}>
+          <ExportPanel data={mergedData} latest={latest} />
         </div>
       </div>
 
