@@ -111,10 +111,13 @@ def get_thai_oil():
     return fetch_oil(datetime.now())
 
 @app.get("/thai-oil/history")
-def get_history():
+def get_history(days: int = 7):
+    # Limit to reasonable range
+    days = min(max(days, 1), 90)
+    
     results = []
 
-    for i in range(7):
+    for i in range(days):
         day = datetime.now() - timedelta(days=i)
 
         data = fetch_oil(day)
@@ -127,11 +130,14 @@ def get_history():
     return results
 
 @app.get("/thai-oil/predict")
-def predict_oil():
+def predict_oil(days: int = 7):
+    # Limit to reasonable range
+    days = min(max(days, 3), 90)
+    
     diesel_hist = []
     g95_hist = []
 
-    for i in range(7):
+    for i in range(days):
         day = datetime.now() - timedelta(days=i)
         data = fetch_oil(day)
 

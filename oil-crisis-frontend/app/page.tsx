@@ -9,9 +9,12 @@ import GlobalPanel from "@/components/GlobalPanel";
 import AlertPanel from "@/components/AlertPanel";
 import ExportPanel from "@/components/ExportPanel";
 import FuelFilter from "@/components/FuelFilter";
+import AccuracyPanel from "@/components/AccuracyPanel";
+import DateRangeSelector from "@/components/DateRangeSelector";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { exportHistoricalData, exportLatestPrices } from "@/utils/export";
+import { calculateAccuracy, extractHistoricalPredictions, AccuracyMetrics } from "@/utils/accuracy";
 
 export default function Home() {
   const { theme, toggleTheme, colors } = useTheme();
@@ -24,6 +27,8 @@ export default function Home() {
   gasohol95: { pred: [], low: [], high: [] }
 });
   const [selectedFuels, setSelectedFuels] = useState<string[]>(["Diesel", "Gasohol95"]);
+  const [dateRange, setDateRange] = useState<number>(7);
+  const [loading, setLoading] = useState<boolean>(false);
 
   // 🎨 Theme-aware panel style
   const panelStyle = {
@@ -35,10 +40,11 @@ export default function Home() {
 
   // 🔥 FIX: fetch + set prediction ถูกต้อง
   const fetchData = async () => {
+  setLoading(true);
   try {
     const [res1, res2] = await Promise.all([
-      fetch("http://localhost:8000/thai-oil/history"),
-      fetch("http://localhost:8000/thai-oil/predict")
+      fetch(`http://localhost:8000/thai-oil/history?days=${dateRange}`),
+      fetch(`http://localhost:8000/thai-oil/predict?days=${dateRange}`)
     ]);
 
     const raw = await res1.json();
@@ -53,6 +59,8 @@ export default function Home() {
     setData(transformed);
   } catch (err) {
     console.error("fetch error", err);
+  } finally {
+    setLoading(false);
   }
 };
 
@@ -139,6 +147,17 @@ export default function Home() {
 
   const mergedData = mergePrediction(data, prediction);
   
+  // Calculate accuracy metrics
+  const historicalData = extractHistoricalPredictions(mergedData);
+  const dieselMetrics = calculateAccuracy(
+    historicalData.diesel.actual,
+    historicalData.diesel.predicted
+  );
+  const gasohol95Metrics = calculateAccuracy(
+    historicalData.gasohol95.actual,
+    historicalData.gasohol95.predicted
+  );
+  
   // Get available fuel types from latest data
   const availableFuels = Array.from(new Set(latest.map(item => item.fuel)));
 
@@ -165,7 +184,7 @@ export default function Home() {
     fetchData();
     const interval = setInterval(fetchData, 15000); // 🔥 ลด load
     return () => clearInterval(interval);
-  }, []);
+  }, [dateRange]); // Re-fetch when date range changes
 
   return (
     <div
@@ -278,12 +297,42 @@ export default function Home() {
       {/* 🔥 TICKER (เหลืออันเดียวพอ) */}
       <Ticker data={filteredLatest} />
 
+      {/* 📅 DATE RANGE SELECTOR */}
+      <div style={{ 
+        marginBottom: 14,
+        padding: 12,
+        background: colors.panelBg,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 10,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+      }}>
+        <DateRangeSelector 
+          selectedDays={dateRange}
+          onDaysChange={setDateRange}
+        />
+        
+        {loading && (
+          <div style={{ 
+            fontSize: 12, 
+            color: colors.accent,
+            display: "flex",
+            alignItems: "center",
+            gap: 6
+          }}>
+            <span className="spinner">⏳</span>
+            {language === "en" ? "Loading..." : "กำลังโหลด..."}
+          </div>
+        )}
+      </div>
+
       {/* 🔥 GRID */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "2fr 1fr",
-          gridTemplateRows: "500px auto",
+          gridTemplateRows: "500px auto auto",
           gap: 14
         }}
       >
@@ -297,7 +346,15 @@ export default function Home() {
           <LatestPanel latest={filteredLatest} getPriceChange={getPriceChange} />
         </div>
 
-        {/* 🌍 GLOBAL + 🚨 ALERT */}
+        {/* � ALCCURACY METRICS */}
+        <div style={panelStyle}>
+          <AccuracyPanel 
+            dieselMetrics={dieselMetrics}
+            gasohol95Metrics={gasohol95Metrics}
+          />
+        </div>
+
+        {/* 🌍 GLOBAL + � ALERT */}
         <div style={{ display: "flex", gap: 14 }}>
           <div style={{ ...panelStyle, flex: 1 }}>
             <GlobalPanel />
@@ -308,7 +365,7 @@ export default function Home() {
         </div>
 
         {/* 🔍 FILTER + 📥 EXPORT */}
-        <div style={{ display: "flex", gap: 14 }}>
+        <div style={{ display: "flex", gap: 14, gridColumn: "1 / -1" }}>
           <div style={{ ...panelStyle, flex: 1 }}>
             <FuelFilter 
               selectedFuels={selectedFuels}
