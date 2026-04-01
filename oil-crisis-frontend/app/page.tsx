@@ -12,11 +12,21 @@ import FuelFilter from "@/components/FuelFilter";
 import AccuracyPanel from "@/components/AccuracyPanel";
 import DateRangeSelector from "@/components/DateRangeSelector";
 import TrendsContainer from "@/components/TrendsContainer";
+import AlertsPanel from "@/components/AlertsPanel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { exportHistoricalData, exportLatestPrices } from "@/utils/export";
 import { calculateAccuracy, extractHistoricalPredictions, AccuracyMetrics } from "@/utils/accuracy";
 import { calculateTrend, calculatePriceStats, getWeeklyTrend } from "@/utils/trends";
+import { 
+  PriceAlert, 
+  loadAlerts, 
+  saveAlerts, 
+  createAlert, 
+  checkAlerts,
+  requestNotificationPermission,
+  showNotification
+} from "@/utils/alerts";
 
 export default function Home() {
   const { theme, toggleTheme, colors } = useTheme();
@@ -31,6 +41,7 @@ export default function Home() {
   const [selectedFuels, setSelectedFuels] = useState<string[]>(["Diesel", "Gasohol95"]);
   const [dateRange, setDateRange] = useState<number>(7);
   const [loading, setLoading] = useState<boolean>(false);
+  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
 
   // 🎨 Theme-aware panel style
   const panelStyle = {
@@ -197,6 +208,28 @@ export default function Home() {
     });
   };
 
+  // Alert handlers
+  const handleAddAlert = (fuelType: string, targetPrice: number, condition: "above" | "below") => {
+    const newAlert = createAlert(fuelType, targetPrice, condition);
+    const updatedAlerts = [...alerts, newAlert];
+    setAlerts(updatedAlerts);
+    saveAlerts(updatedAlerts);
+  };
+
+  const handleDeleteAlert = (id: string) => {
+    const updatedAlerts = alerts.filter(a => a.id !== id);
+    setAlerts(updatedAlerts);
+    saveAlerts(updatedAlerts);
+  };
+
+  const handleToggleAlert = (id: string) => {
+    const updatedAlerts = alerts.map(a => 
+      a.id === id ? { ...a, isActive: !a.isActive } : a
+    );
+    setAlerts(updatedAlerts);
+    saveAlerts(updatedAlerts);
+  };
+
   // Filter data based on selected fuels
   const filteredLatest = latest.filter(item => 
     selectedFuels.some(fuel => item.fuel.includes(fuel))
@@ -205,10 +238,40 @@ export default function Home() {
   console.log("merged data:", mergedData);
 
   useEffect(() => {
+    // Load alerts from localStorage
+    setAlerts(loadAlerts());
+    
+    // Request notification permission
+    requestNotificationPermission();
+  }, []);
+
+  useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 15000); // 🔥 ลด load
     return () => clearInterval(interval);
   }, [dateRange]); // Re-fetch when date range changes
+
+  // Check alerts when latest prices update
+  useEffect(() => {
+    if (latest.length > 0 && alerts.length > 0) {
+      const { triggeredAlerts, updatedAlerts } = checkAlerts(alerts, latest);
+      
+      if (triggeredAlerts.length > 0) {
+        setAlerts(updatedAlerts);
+        saveAlerts(updatedAlerts);
+        
+        // Show notifications
+        triggeredAlerts.forEach(alert => {
+          const priceData = latest.find(p => 
+            p.fuel.includes(alert.fuelType) || alert.fuelType.includes(p.fuel)
+          );
+          if (priceData) {
+            showNotification(alert, priceData.price);
+          }
+        });
+      }
+    }
+  }, [latest]);
 
   return (
     <div
@@ -400,7 +463,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 🔍 FILTER + 📥 EXPORT */}
+        {/* 🔍 FILTER + 📥 EXPORT + 🔔 ALERTS */}
         <div style={{ display: "flex", gap: 14, gridColumn: "1 / -1" }}>
           <div style={{ ...panelStyle, flex: 1 }}>
             <FuelFilter 
@@ -411,6 +474,15 @@ export default function Home() {
           </div>
           <div style={{ ...panelStyle, flex: 1 }}>
             <ExportPanel data={mergedData} latest={filteredLatest} />
+          </div>
+          <div style={{ ...panelStyle, flex: 1 }}>
+            <AlertsPanel
+              alerts={alerts}
+              onAddAlert={handleAddAlert}
+              onDeleteAlert={handleDeleteAlert}
+              onToggleAlert={handleToggleAlert}
+              availableFuels={availableFuels}
+            />
           </div>
         </div>
       </div>
