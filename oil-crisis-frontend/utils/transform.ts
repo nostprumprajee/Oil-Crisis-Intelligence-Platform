@@ -5,10 +5,13 @@ export const transformData = (raw: any[]) => {
     };
 
     day.prices.forEach((p: any) => {
-      if (p.fuel.includes("ดีเซล")) {
+      const fuel = p.fuel;
+
+      if (fuel.includes("ดีเซล")) {
         obj.Diesel = p.price;
       }
-      if (p.fuel.includes("95")) {
+
+      if (fuel.includes("เบนซินแก๊สโซฮอล์ 95")) {
         obj.Gasohol95 = p.price;
       }
     });

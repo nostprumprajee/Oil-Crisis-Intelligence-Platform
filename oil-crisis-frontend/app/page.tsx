@@ -9,7 +9,11 @@ export default function Home() {
   const [data, setData] = useState<any[]>([]);
   const [latest, setLatest] = useState<any[]>([]);
   const [prevLatest, setPrevLatest] = useState<any[]>([]);
-  const [prediction, setPrediction] = useState<number[]>([]);
+  // const [prediction, setPrediction] = useState<number[]>([]);
+  const [prediction, setPrediction] = useState({
+  diesel: [],
+  gasohol95: []
+});
 
   // const fetchData = () => {
   //   fetch("http://localhost:8000/thai-oil/history")
@@ -19,19 +23,24 @@ export default function Home() {
   //       setLatest(raw[0]?.prices || []);
   //     });
   // };
-  const fetchData = () => {
-  fetch("http://localhost:8000/thai-oil/history")
-    .then(res => res.json())
-    .then(raw => {
-      setData(transformData(raw));
+  const fetchData = async () => {
+  // 🔹 ดึง history
+  const res1 = await fetch("http://localhost:8000/thai-oil/history");
+  const raw = await res1.json();
 
-      // 🔥 เก็บค่าเก่า
-      setPrevLatest(latest);
+  setData(transformData(raw));
+  setPrevLatest([...latest]);
+  setLatest(raw[0]?.prices || []);
 
-      // 🔥 ค่าใหม่
-      setLatest(raw[0]?.prices || []);
-    });
-};
+  // 🔮 ดึง prediction
+  const res2 = await fetch("http://localhost:8000/thai-oil/predict");
+  const pred = await res2.json();
+
+  setPrediction({
+    diesel: pred.diesel || [],
+    gasohol95: pred.gasohol95 || []
+  });
+  };
   const getPriceChange = (fuel: string, price: number) => {
     const prev = prevLatest.find(p => p.fuel === fuel);
     if (!prev) return "neutral";
@@ -40,6 +49,35 @@ export default function Home() {
     if (price < prev.price) return "down";
     return "same";
   };
+  const mergePrediction = (data: any[], prediction: any) => {
+  const sorted = [...data].reverse();
+
+  const merged = [...sorted];
+
+  prediction.diesel.forEach((p: number, i: number) => {
+    if (!merged[i + sorted.length]) {
+      merged.push({
+        date: `+${i + 1}d`
+      });
+    }
+
+    merged[sorted.length + i].Diesel_pred = p;
+  });
+
+  prediction.gasohol95.forEach((p: number, i: number) => {
+    if (!merged[i + sorted.length]) {
+      merged.push({
+        date: `+${i + 1}d`
+      });
+    }
+
+    merged[sorted.length + i].Gasohol95_pred = p;
+  });
+
+  return merged;
+};
+
+  const mergedData = mergePrediction(data, prediction);
 
   useEffect(() => {
     fetchData();
@@ -74,7 +112,7 @@ export default function Home() {
       }}>
 
         {/* 📊 CHART */}
-        <OilChart data={data} />
+        <OilChart data={mergedData} />
 
         {/* 💹 LATEST */}
         <div style={{

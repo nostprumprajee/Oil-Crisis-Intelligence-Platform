@@ -86,6 +86,27 @@ def fetch_oil(day: datetime):
 
     return prices
 
+def predict_with_band(series):
+    if len(series) < 2:
+        return [], [], []
+
+    X = np.array(range(len(series))).reshape(-1, 1)
+    y = np.array(series)
+
+    model = LinearRegression()
+    model.fit(X, y)
+
+    future_x = np.array(range(len(series), len(series)+3)).reshape(-1, 1)
+    pred = model.predict(future_x)
+
+    # 🔥 confidence band (ง่าย ๆ)
+    std = np.std(y)
+
+    low = pred - std
+    high = pred + std
+
+    return pred.tolist(), low.tolist(), high.tolist()
+
 @app.get("/thai-oil")
 def get_thai_oil():
     return fetch_oil(datetime.now())
@@ -108,35 +129,38 @@ def get_history():
 
 @app.get("/thai-oil/predict")
 def predict_oil():
-    history = []
+    diesel_hist = []
+    g95_hist = []
 
-    # ดึงย้อนหลัง 7 วัน
     for i in range(7):
         day = datetime.now() - timedelta(days=i)
         data = fetch_oil(day)
 
         for item in data:
             if "ดีเซล" in item["fuel"]:
-                history.append(item["price"])
+                diesel_hist.append(item["price"])
 
-    if len(history) < 2:
-        return {"error": "Not enough data"}
+            if "เบนซินแก๊สโซฮอล์ 95" in item["fuel"]:
+                g95_hist.append(item["price"])
 
-    # reverse ให้เรียงเวลา
-    history = history[::-1]
+    # reverse ให้ถูกเวลา
+    diesel_hist = diesel_hist[::-1]
+    g95_hist = g95_hist[::-1]
 
-    # 🔥 สร้าง X,Y
-    X = np.array(range(len(history))).reshape(-1, 1)
-    y = np.array(history)
+    def predict(series):
+        if len(series) < 2:
+            return []
 
-    model = LinearRegression()
-    model.fit(X, y)
+        X = np.array(range(len(series))).reshape(-1, 1)
+        y = np.array(series)
 
-    # 🔮 predict 3 วันข้างหน้า
-    future_x = np.array(range(len(history), len(history) + 3)).reshape(-1, 1)
-    predictions = model.predict(future_x)
+        model = LinearRegression()
+        model.fit(X, y)
+
+        future_x = np.array(range(len(series), len(series)+3)).reshape(-1, 1)
+        return model.predict(future_x).tolist()
 
     return {
-        "history": history,
-        "prediction": predictions.tolist()
+        "diesel": predict(diesel_hist),
+        "gasohol95": predict(g95_hist)
     }

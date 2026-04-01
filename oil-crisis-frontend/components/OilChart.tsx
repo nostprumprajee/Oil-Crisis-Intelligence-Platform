@@ -42,6 +42,14 @@ export default function OilChart({ data }: { data: any[] }) {
             isAnimationActive={true}
           />
 
+          <Line
+            type="monotone"
+            dataKey="Diesel_pred"
+            stroke="#22c55e"
+            strokeDasharray="5 5"   // 🔥 เส้นประ
+            dot={false}
+          />
+
           {/* Gasohol 95 */}
           <Line
             type="monotone"
@@ -50,6 +58,13 @@ export default function OilChart({ data }: { data: any[] }) {
             strokeWidth={3}
             dot={false}
             isAnimationActive={true}
+          />
+          <Line
+            type="monotone"
+            dataKey="Gasohol95_pred"
+            stroke="#facc15"
+            strokeDasharray="5 5"   // 🔥 เส้นประ
+            dot={false}
           />
         </LineChart>
       </ResponsiveContainer>
