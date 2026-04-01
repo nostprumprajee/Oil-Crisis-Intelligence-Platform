@@ -7,8 +7,10 @@ import Ticker from "@/components/Ticker";
 import LatestPanel from "@/components/LatestPanel";
 import GlobalPanel from "@/components/GlobalPanel";
 import AlertPanel from "@/components/AlertPanel";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function Home() {
+  const { theme, toggleTheme, colors } = useTheme();
   const [data, setData] = useState<any[]>([]);
   const [latest, setLatest] = useState<any[]>([]);
   const [prevLatest, setPrevLatest] = useState<any[]>([]);
@@ -17,10 +19,10 @@ export default function Home() {
   gasohol95: { pred: [], low: [], high: [] }
 });
 
-  // 🎨 NEW UI style (premium)
+  // 🎨 Theme-aware panel style
   const panelStyle = {
-    background: "linear-gradient(145deg, #0a0f1a, #05070b)",
-    border: "1px solid #1f2937",
+    background: colors.panelBg,
+    border: `1px solid ${colors.border}`,
     borderRadius: 12,
     padding: 14
   };
@@ -35,21 +37,6 @@ export default function Home() {
 
     const raw = await res1.json();
     const predRaw = await res2.json();
-
-    // 🔥 FIX: normalize prediction
-    // const pred = {
-    //   diesel: Array.isArray(predRaw.diesel)
-    //     ? predRaw.diesel
-    //     : typeof predRaw.diesel === "string"
-    //     ? predRaw.diesel.split(",").map(Number)
-    //     : [],
-
-    //   gasohol95: Array.isArray(predRaw.gasohol95)
-    //     ? predRaw.gasohol95
-    //     : typeof predRaw.gasohol95 === "string"
-    //     ? predRaw.gasohol95.split(",").map(Number)
-    //     : []
-    // };
     const pred = predRaw;
 
     setPrevLatest(latest);
@@ -127,10 +114,18 @@ export default function Home() {
   // 🔮 future points
   for (let i = 1; i < Math.max(dieselPred.length, gasPred.length); i++) {
     merged.push({
-      date: addDays(lastDate, i + 1),
-      Diesel_pred: dieselPred[i],
-      Gasohol95_pred: gasPred[i]
-    });
+    date: addDays(lastDate, i + 1),
+      
+    Diesel_pred: dieselPred[i],
+    Diesel_low: prediction.diesel.low[i],
+    Diesel_high: prediction.diesel.high[i],
+    Diesel_range: prediction.diesel.high[i] - prediction.diesel.low[i],
+      
+    Gasohol95_pred: gasPred[i],
+    Gasohol95_low: prediction.gasohol95.low[i],
+    Gasohol95_high: prediction.gasohol95.high[i],
+    Gasohol95_range: prediction.gasohol95.high[i] - prediction.gasohol95.low[i]
+  });
   }
 
   return merged;
@@ -149,9 +144,9 @@ export default function Home() {
   return (
     <div
       style={{
-        background: "#05070b",
+        background: colors.bg,
         minHeight: "100vh",
-        color: "#e5e7eb",
+        color: colors.text,
         padding: 16,
         fontFamily: "Inter, system-ui"
       }}
@@ -162,17 +157,37 @@ export default function Home() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          borderBottom: "1px solid #1f2937",
+          borderBottom: `1px solid ${colors.border}`,
           paddingBottom: 12,
           marginBottom: 16
         }}
       >
-        <h1 style={{ color: "#facc15", fontSize: 20 }}>
+        <h1 style={{ color: colors.accent, fontSize: 20 }}>
           🛢️ Oil Crisis Intelligence Terminal
         </h1>
 
-        <div style={{ fontSize: 12, color: "#9ca3af" }}>
-          LIVE MARKET • THAILAND
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <button
+            onClick={toggleTheme}
+            style={{
+              background: colors.panelBg,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 8,
+              padding: "6px 12px",
+              color: colors.text,
+              cursor: "pointer",
+              fontSize: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 6
+            }}
+          >
+            {theme === "dark" ? "☀️" : "🌙"} {theme === "dark" ? "Light" : "Dark"}
+          </button>
+
+          <div style={{ fontSize: 12, color: colors.textSecondary }}>
+            LIVE MARKET • THAILAND
+          </div>
         </div>
       </div>
 
@@ -216,11 +231,11 @@ export default function Home() {
           ...panelStyle
         }}
       >
-        <h3 style={{ color: "#facc15" }}>All Fuel Prices</h3>
+        <h3 style={{ color: colors.accent }}>All Fuel Prices</h3>
 
         <table style={{ width: "100%", marginTop: 10 }}>
           <thead>
-            <tr style={{ color: "#9ca3af", textAlign: "left" }}>
+            <tr style={{ color: colors.textSecondary, textAlign: "left" }}>
               <th>Fuel</th>
               <th>Price</th>
             </tr>
@@ -239,10 +254,10 @@ export default function Home() {
                       fontWeight: 600,
                       color:
                         change === "up"
-                          ? "#22c55e"
+                          ? colors.up
                           : change === "down"
-                          ? "#ef4444"
-                          : "#e5e7eb"
+                          ? colors.down
+                          : colors.neutral
                     }}
                   >
                     {item.price.toFixed(2)}

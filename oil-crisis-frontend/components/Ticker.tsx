@@ -1,12 +1,16 @@
 "use client";
 
+import { useTheme } from "@/contexts/ThemeContext";
+
 export default function Ticker({ data }: { data: any[] }) {
+  const { colors } = useTheme();
+
   return (
     <div style={{
       overflow: "hidden",
       whiteSpace: "nowrap",
-      borderTop: "1px solid #222",
-      borderBottom: "1px solid #222",
+      borderTop: `1px solid ${colors.border}`,
+      borderBottom: `1px solid ${colors.border}`,
       padding: "6px 0",
       marginBottom: 10
     }}>
@@ -17,7 +21,7 @@ export default function Ticker({ data }: { data: any[] }) {
         {data.map((item, i) => (
           <span key={i} style={{ marginRight: 40 }}>
             {item.fuel}: 
-            <span style={{ color: "#22c55e" }}>
+            <span style={{ color: colors.up }}>
               {item.price}
             </span>
           </span>

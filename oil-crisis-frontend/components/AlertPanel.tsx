@@ -1,4 +1,10 @@
+"use client";
+
+import { useTheme } from "@/contexts/ThemeContext";
+
 export default function AlertPanel({ latest }: any) {
+  const { colors } = useTheme();
+  
   const diesel = latest.find((l: any) =>
     l.fuel.includes("ดีเซล")
   );
@@ -7,14 +13,14 @@ export default function AlertPanel({ latest }: any) {
 
   return (
     <div>
-      <h3 style={{ color: "#facc15" }}>Alerts</h3>
+      <h3 style={{ color: colors.accent }}>Alerts</h3>
 
       {alert ? (
-        <div style={{ color: "#ef4444", marginTop: 10 }}>
+        <div style={{ color: colors.down, marginTop: 10 }}>
           🚨 Diesel price spike detected!
         </div>
       ) : (
-        <div style={{ color: "#22c55e", marginTop: 10 }}>
+        <div style={{ color: colors.up, marginTop: 10 }}>
           ✅ Market stable
         </div>
       )}

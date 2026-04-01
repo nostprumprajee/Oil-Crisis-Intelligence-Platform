@@ -1,7 +1,13 @@
+"use client";
+
+import { useTheme } from "@/contexts/ThemeContext";
+
 export default function LatestPanel({ latest, getPriceChange }: any) {
+  const { colors } = useTheme();
+
   return (
     <div>
-      <h3 style={{ color: "#facc15" }}>Latest Prices</h3>
+      <h3 style={{ color: colors.accent }}>Latest Prices</h3>
 
       {latest.map((item: any, i: number) => {
         const change = getPriceChange(item.fuel, item.price);
@@ -14,7 +20,7 @@ export default function LatestPanel({ latest, getPriceChange }: any) {
               display: "flex",
               justifyContent: "space-between",
               padding: "6px 0",
-              borderBottom: "1px solid #111"
+              borderBottom: `1px solid ${colors.border}`
             }}
           >
             <span>{item.fuel}</span>
@@ -23,10 +29,10 @@ export default function LatestPanel({ latest, getPriceChange }: any) {
               style={{
                 color:
                   change === "up"
-                    ? "#22c55e"
+                    ? colors.up
                     : change === "down"
-                    ? "#ef4444"
-                    : "#aaa"
+                    ? colors.down
+                    : colors.textSecondary
               }}
             >
               {item.price}
