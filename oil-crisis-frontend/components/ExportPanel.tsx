@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { exportHistoricalData, exportLatestPrices } from "@/utils/export";
 
 interface ExportPanelProps {
@@ -10,10 +11,11 @@ interface ExportPanelProps {
 
 export default function ExportPanel({ data, latest }: ExportPanelProps) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <div>
-      <h3 style={{ color: colors.accent, marginBottom: 12 }}>📥 Data Export</h3>
+      <h3 style={{ color: colors.accent, marginBottom: 12 }}>{t.panels.dataExport}</h3>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <button
@@ -37,10 +39,10 @@ export default function ExportPanel({ data, latest }: ExportPanelProps) {
           }}
         >
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            📊 Historical Data
+            {t.export.historical}
           </div>
           <div style={{ fontSize: 11, color: colors.textSecondary }}>
-            Export all {data.length} records with predictions
+            {t.export.historicalDesc.replace("{count}", data.length.toString())}
           </div>
         </button>
 
@@ -65,10 +67,10 @@ export default function ExportPanel({ data, latest }: ExportPanelProps) {
           }}
         >
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            💾 Latest Prices
+            {t.export.latestPrices}
           </div>
           <div style={{ fontSize: 11, color: colors.textSecondary }}>
-            Export current {latest.length} fuel prices
+            {t.export.latestDesc.replace("{count}", latest.length.toString())}
           </div>
         </button>
       </div>
@@ -81,7 +83,7 @@ export default function ExportPanel({ data, latest }: ExportPanelProps) {
         fontSize: 11,
         color: colors.textSecondary 
       }}>
-        💡 CSV files include timestamps and are ready for Excel/Google Sheets
+        {t.export.tip}
       </div>
     </div>
   );

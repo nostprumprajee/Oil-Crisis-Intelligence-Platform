@@ -1,13 +1,15 @@
 "use client";
 
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function LatestPanel({ latest, getPriceChange }: any) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <div>
-      <h3 style={{ color: colors.accent }}>Latest Prices</h3>
+      <h3 style={{ color: colors.accent }}>{t.panels.latestPrices}</h3>
 
       {latest.map((item: any, i: number) => {
         const change = getPriceChange(item.fuel, item.price);

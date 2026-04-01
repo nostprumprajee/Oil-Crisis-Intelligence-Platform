@@ -12,6 +12,7 @@ import {
   Legend
 } from "recharts";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || payload.length === 0) return null;
@@ -36,8 +37,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export default function OilChart({ data }: { data: any[] }) {
+export default function OilChart({ data, selectedFuels }: { data: any[]; selectedFuels: string[] }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
+
+  // Check which fuels are selected
+  const showDiesel = selectedFuels.some(f => f.includes("Diesel") || f.includes("ดีเซล"));
+  const showGasohol95 = selectedFuels.some(f => f.includes("Gasohol95") || f.includes("แก๊สโซฮอล์ 95"));
 
   return (
     <div
@@ -50,10 +56,10 @@ export default function OilChart({ data }: { data: any[] }) {
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <h3 style={{ color: colors.accent, margin: 0 }}>
-          Oil Price Trend + Forecast
+          {t.chart.title}
         </h3>
         <div style={{ fontSize: 12, color: colors.textSecondary }}>
-          {data.length} data points
+          {data.length} {t.chart.dataPoints} • {selectedFuels.length} {t.chart.fuels}{selectedFuels.length > 1 ? 's' : ''}
         </div>
       </div>
 
@@ -78,91 +84,69 @@ export default function OilChart({ data }: { data: any[] }) {
           <Tooltip content={<CustomTooltip />} />
           <Legend />
 
-          {/* 🌈 Diesel Confidence Band */}
-          {/* <Area
-            type="monotone"
-            dataKey="Diesel_high"
-            stroke="none"
-            fill="#22c55e22"
-          /> */}
-          <Area
-            type="monotone"
-            dataKey="Diesel_low"
-            stackId="diesel"
-            stroke="none"
-            fill="transparent"
-          />
+          {/* Diesel Lines - only show if selected */}
+          {showDiesel && (
+            <>
+              <Area
+                type="monotone"
+                dataKey="Diesel_low"
+                stackId="diesel"
+                stroke="none"
+                fill="transparent"
+              />
 
-          {/* <Area
-            type="monotone"
-            dataKey="Diesel_range"
-            stackId="diesel"
-            stroke="none"
-            fill="#url(#dieselBand)"
-          /> */}
+              <Line
+                type="monotone"
+                dataKey="Diesel"
+                stroke={colors.up}
+                strokeWidth={3}
+                dot={false}
+                name={`${t.chart.diesel} (${t.chart.actual})`}
+              />
 
-          {/* 🌈 Gasohol95 Confidence Band */}
-          {/* <Area
-            type="monotone"
-            dataKey="Gasohol95_high"
-            stroke="none"
-            fill="#facc1522"
-          /> */}
-          <Area
-            type="monotone"
-            dataKey="Gasohol95_low"
-            stackId="gas"
-            stroke="none"
-            fill="transparent"
-          />
+              <Line
+                type="monotone"
+                dataKey="Diesel_pred"
+                stroke={colors.up}
+                strokeDasharray="5 5"
+                dot={false}
+                name={`${t.chart.diesel} (${t.chart.forecast})`}
+                connectNulls
+              />
+            </>
+          )}
 
-          {/* <Area
-            type="monotone"
-            dataKey="Gasohol95_range"
-            stackId="gas"
-            stroke="none"
-            fill="#url(#gasBand)"
-          /> */}
+          {/* Gasohol95 Lines - only show if selected */}
+          {showGasohol95 && (
+            <>
+              <Area
+                type="monotone"
+                dataKey="Gasohol95_low"
+                stackId="gas"
+                stroke="none"
+                fill="transparent"
+              />
 
-          {/* 📈 Actual Lines */}
-          <Line
-            type="monotone"
-            dataKey="Diesel"
-            stroke={colors.up}
-            strokeWidth={3}
-            dot={false}
-            name="Diesel (Actual)"
-          />
+              <Line
+                type="monotone"
+                dataKey="Gasohol95"
+                stroke={colors.accent}
+                strokeWidth={3}
+                dot={false}
+                name={`${t.chart.gasohol95} (${t.chart.actual})`}
+              />
 
-          <Line
-            type="monotone"
-            dataKey="Gasohol95"
-            stroke={colors.accent}
-            strokeWidth={3}
-            dot={false}
-            name="Gasohol 95 (Actual)"
-          />
-
-          {/* 🔮 Prediction Lines */}
-          <Line
-            type="monotone"
-            dataKey="Diesel_pred"
-            stroke={colors.up}
-            strokeDasharray="5 5"
-            dot={false}
-            name="Diesel (Forecast)"
-            connectNulls
-          />
-
-          <Line
-            type="monotone"
-            dataKey="Gasohol95_pred"
-            stroke={colors.accent}
-            strokeDasharray="5 5"
-            dot={false}
-            name="Gasohol 95 (Forecast)"
-            connectNulls
-          />
+              <Line
+                type="monotone"
+                dataKey="Gasohol95_pred"
+                stroke={colors.accent}
+                strokeDasharray="5 5"
+                dot={false}
+                name={`${t.chart.gasohol95} (${t.chart.forecast})`}
+                connectNulls
+              />
+            </>
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

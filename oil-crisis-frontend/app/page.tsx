@@ -8,11 +8,14 @@ import LatestPanel from "@/components/LatestPanel";
 import GlobalPanel from "@/components/GlobalPanel";
 import AlertPanel from "@/components/AlertPanel";
 import ExportPanel from "@/components/ExportPanel";
+import FuelFilter from "@/components/FuelFilter";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { exportHistoricalData, exportLatestPrices } from "@/utils/export";
 
 export default function Home() {
   const { theme, toggleTheme, colors } = useTheme();
+  const { language, toggleLanguage, t } = useLanguage();
   const [data, setData] = useState<any[]>([]);
   const [latest, setLatest] = useState<any[]>([]);
   const [prevLatest, setPrevLatest] = useState<any[]>([]);
@@ -20,6 +23,7 @@ export default function Home() {
   diesel: { pred: [], low: [], high: [] },
   gasohol95: { pred: [], low: [], high: [] }
 });
+  const [selectedFuels, setSelectedFuels] = useState<string[]>(["Diesel", "Gasohol95"]);
 
   // 🎨 Theme-aware panel style
   const panelStyle = {
@@ -135,6 +139,26 @@ export default function Home() {
 
   const mergedData = mergePrediction(data, prediction);
   
+  // Get available fuel types from latest data
+  const availableFuels = Array.from(new Set(latest.map(item => item.fuel)));
+
+  // Toggle fuel selection
+  const toggleFuel = (fuel: string) => {
+    setSelectedFuels(prev => {
+      if (prev.includes(fuel)) {
+        // Don't allow deselecting all fuels
+        if (prev.length === 1) return prev;
+        return prev.filter(f => f !== fuel);
+      }
+      return [...prev, fuel];
+    });
+  };
+
+  // Filter data based on selected fuels
+  const filteredLatest = latest.filter(item => 
+    selectedFuels.some(fuel => item.fuel.includes(fuel))
+  );
+  
   console.log("merged data:", mergedData);
 
   useEffect(() => {
@@ -165,7 +189,7 @@ export default function Home() {
         }}
       >
         <h1 style={{ color: colors.accent, fontSize: 20 }}>
-          🛢️ Oil Crisis Intelligence Terminal
+          {t.header.title}
         </h1>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -183,13 +207,13 @@ export default function Home() {
               alignItems: "center",
               gap: 6
             }}
-            title="Export historical data to CSV"
+            title={t.buttons.exportCSV}
           >
-            📊 Export CSV
+            {t.buttons.exportCSV}
           </button>
 
           <button
-            onClick={() => exportLatestPrices(latest)}
+            onClick={() => exportLatestPrices(filteredLatest)}
             style={{
               background: colors.panelBg,
               border: `1px solid ${colors.border}`,
@@ -202,9 +226,29 @@ export default function Home() {
               alignItems: "center",
               gap: 6
             }}
-            title="Export latest prices to CSV"
+            title={t.buttons.latest}
           >
-            💾 Latest
+            {t.buttons.latest}
+          </button>
+
+          <button
+            onClick={toggleLanguage}
+            style={{
+              background: colors.panelBg,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 8,
+              padding: "6px 12px",
+              color: colors.text,
+              cursor: "pointer",
+              fontSize: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontWeight: 600
+            }}
+            title="Switch Language"
+          >
+            {language === "en" ? "🇹🇭 ไทย" : "🇬🇧 EN"}
           </button>
 
           <button
@@ -226,46 +270,55 @@ export default function Home() {
           </button>
 
           <div style={{ fontSize: 12, color: colors.textSecondary }}>
-            LIVE MARKET • THAILAND
+            {t.header.subtitle}
           </div>
         </div>
       </div>
 
       {/* 🔥 TICKER (เหลืออันเดียวพอ) */}
-      <Ticker data={latest} />
+      <Ticker data={filteredLatest} />
 
       {/* 🔥 GRID */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "2fr 1fr",
-          gridTemplateRows: "500px 280px 200px",
+          gridTemplateRows: "500px auto",
           gap: 14
         }}
       >
         {/* 📊 CHART */}
         <div style={panelStyle}>
-          <OilChart data={mergedData} />
+          <OilChart data={mergedData} selectedFuels={selectedFuels} />
         </div>
 
-        {/* 💹 RIGHT */}
+        {/* 💹 RIGHT TOP */}
         <div style={panelStyle}>
-          <LatestPanel latest={latest} getPriceChange={getPriceChange} />
+          <LatestPanel latest={filteredLatest} getPriceChange={getPriceChange} />
         </div>
 
-        {/* 🌍 GLOBAL */}
-        <div style={panelStyle}>
-          <GlobalPanel />
+        {/* 🌍 GLOBAL + 🚨 ALERT */}
+        <div style={{ display: "flex", gap: 14 }}>
+          <div style={{ ...panelStyle, flex: 1 }}>
+            <GlobalPanel />
+          </div>
+          <div style={{ ...panelStyle, flex: 1 }}>
+            <AlertPanel latest={filteredLatest} />
+          </div>
         </div>
 
-        {/* 🚨 ALERT */}
-        <div style={panelStyle}>
-          <AlertPanel latest={latest} />
-        </div>
-
-        {/* 📥 EXPORT */}
-        <div style={{ ...panelStyle, gridColumn: "1 / -1" }}>
-          <ExportPanel data={mergedData} latest={latest} />
+        {/* 🔍 FILTER + 📥 EXPORT */}
+        <div style={{ display: "flex", gap: 14 }}>
+          <div style={{ ...panelStyle, flex: 1 }}>
+            <FuelFilter 
+              selectedFuels={selectedFuels}
+              onToggleFuel={toggleFuel}
+              availableFuels={availableFuels}
+            />
+          </div>
+          <div style={{ ...panelStyle, flex: 1 }}>
+            <ExportPanel data={mergedData} latest={filteredLatest} />
+          </div>
         </div>
       </div>
 
@@ -276,18 +329,18 @@ export default function Home() {
           ...panelStyle
         }}
       >
-        <h3 style={{ color: colors.accent }}>All Fuel Prices</h3>
+        <h3 style={{ color: colors.accent }}>{t.table.allFuelPrices}</h3>
 
         <table style={{ width: "100%", marginTop: 10 }}>
           <thead>
             <tr style={{ color: colors.textSecondary, textAlign: "left" }}>
-              <th>Fuel</th>
-              <th>Price</th>
+              <th>{t.table.fuel}</th>
+              <th>{t.table.price}</th>
             </tr>
           </thead>
 
           <tbody>
-            {latest.map((item, i) => {
+            {filteredLatest.map((item, i) => {
               const change = getPriceChange(item.fuel, item.price);
 
               return (

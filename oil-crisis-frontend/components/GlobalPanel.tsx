@@ -1,13 +1,15 @@
 "use client";
 
 import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function GlobalPanel() {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <div>
-      <h3 style={{ color: colors.accent }}>Global Oil</h3>
+      <h3 style={{ color: colors.accent }}>{t.panels.globalOil}</h3>
 
       <div style={{ color: colors.textSecondary, marginTop: 10 }}>
         Brent: $86.12
